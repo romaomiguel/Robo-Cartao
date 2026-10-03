@@ -1,0 +1,48 @@
+name: Build and Push
+
+on:
+  # Versão pública: o deploy só roda manualmente (exige os secrets e o cluster do autor).
+  workflow_dispatch:
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set lowercase image name
+        run: echo "IMAGE_NAME=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+      - name: Update manifest repository
+        run: |
+          git clone https://x-access-token:${{ secrets.MANIFESTS_REPO_TOKEN }}@github.com/seu-usuario/k8s-manifests.git
+          cd k8s-manifests
+          sed -i "s|image: ghcr.io/seu-usuario/robo-cartao:.*|image: ghcr.io/seu-usuario/robo-cartao:${{ github.sha }}|" robo-cartao/deployment.yaml
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add robo-cartao/deployment.yaml
+          git commit -m "Atualiza robo-cartao para ${{ github.sha }}" || echo "Nada para commitar"
+          git push
