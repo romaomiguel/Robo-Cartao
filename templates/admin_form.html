@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ 'Editar' if editando else 'Nova' }} configuração &middot; Robô Cartão</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: #0b1120; color: #e2e8f0; }
+    .topbar {
+      display: flex; align-items: center; gap: 14px; padding: 18px 32px; border-bottom: 1px solid #1c2740;
+      background: #0e1626; position: sticky; top: 0;
+    }
+    .topbar h1 { font-size: 17px; margin: 0; }
+    a.back { color: #93c5fd; text-decoration: none; font-size: 13px; }
+    a.back:hover { text-decoration: underline; }
+
+    .wrap { max-width: 720px; margin: 0 auto; padding: 28px 24px 64px; }
+    .flash-err {
+      background: #2e1414; color: #f87171; border: 1px solid #7f1d1d; border-radius: 8px;
+      padding: 10px 16px; font-size: 13px; margin-bottom: 18px; white-space: pre-wrap;
+    }
+
+    fieldset { border: 1px solid #24304a; border-radius: 12px; padding: 18px 20px; margin-bottom: 18px; }
+    legend { padding: 0 8px; font-size: 13px; color: #93c5fd; font-weight: 600; }
+    .field { margin-bottom: 14px; }
+    .field:last-child { margin-bottom: 0; }
+    label { display: block; font-size: 12.5px; color: #93a2c0; margin-bottom: 6px; }
+    label .opt { color: #56607a; font-weight: 400; }
+    input[type=text], input[type=number] {
+      width: 100%; background: #0b1120; color: #e2e8f0; border: 1px solid #2c3958;
+      border-radius: 8px; padding: 10px 12px; font-size: 13.5px; outline: none;
+    }
+    input:focus { border-color: #3b82f6; }
+    .hint { font-size: 11.5px; color: #56607a; margin-top: 5px; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+    .modo-toggle { display: flex; gap: 10px; margin-bottom: 4px; }
+    .modo-toggle label {
+      flex: 1; display: flex; align-items: center; gap: 8px; border: 1px solid #2c3958; border-radius: 8px;
+      padding: 10px 12px; cursor: pointer; font-size: 13px; color: #cbd5f5; margin: 0;
+    }
+    .modo-toggle input { accent-color: #3b82f6; }
+    .modo-toggle label.active { border-color: #3b82f6; background: #10192e; }
+
+    .subcard { border: 1px solid #1c2740; border-radius: 10px; padding: 14px 16px; margin-top: 10px; }
+    .subcard h3 { font-size: 12.5px; margin: 0 0 10px; color: #93c5fd; }
+
+    .checkline { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #cbd5f5; }
+    .checkline input { accent-color: #3b82f6; }
+
+    details summary { cursor: pointer; font-size: 13px; color: #93c5fd; margin-bottom: 12px; }
+
+    .actions { display: flex; gap: 10px; margin-top: 6px; }
+    button, .btn-cancel {
+      padding: 11px 18px; border-radius: 8px; font-size: 14px; cursor: pointer; text-decoration: none;
+      text-align: center;
+    }
+    button { background: #2563eb; color: #fff; border: none; font-weight: 600; }
+    button:hover { background: #1d4ed8; }
+    .btn-cancel { background: transparent; border: 1px solid #2c3958; color: #93a2c0; }
+    .btn-cancel:hover { background: #161f32; }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <a class="back" href="{{ url_for('admin_dashboard') }}">&larr; Voltar</a>
+    <h1>{{ 'Editar configuração' if editando else 'Nova configuração' }}</h1>
+  </div>
+
+  <div class="wrap">
+    {% if erro %}<div class="flash-err">{{ erro }}</div>{% endif %}
+
+    <form method="post" action="{{ url_for('admin_salvar') }}" id="form-parametro">
+      <input type="hidden" name="chave_original" value="{{ chave_original }}">
+
+      <fieldset>
+        <legend>Identificação do arquivo</legend>
+        <div class="field">
+          <label for="chave">Nome do arquivo (trecho que identifica o tipo)</label>
+          <input type="text" id="chave" name="chave" required value="{{ chave_valor }}"
+                 placeholder="ex: cielo credito">
+          <div class="hint">Se esse texto aparecer (em minúsculas) no nome do arquivo enviado, esta configuração é usada.</div>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label for="palavra_data">Palavra da coluna Data</label>
+            <input type="text" id="palavra_data" name="palavra_data" required value="{{ p.get('palavra_data', '') }}">
+          </div>
+          <div class="field">
+            <label for="ocorrencia">Ocorrência <span class="opt">(opcional)</span></label>
+            <input type="number" id="ocorrencia" name="ocorrencia" value="{{ p.get('ocorrencia', '') }}">
+          </div>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label for="palavra_valor">Palavra da coluna Valor</label>
+            <input type="text" id="palavra_valor" name="palavra_valor" required value="{{ p.get('palavra_valor', '') }}">
+          </div>
+          <div class="field">
+            <label for="palavra_taxa">Palavra da coluna Taxa</label>
+            <input type="text" id="palavra_taxa" name="palavra_taxa" required value="{{ p.get('palavra_taxa', '') }}">
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Identificação de débito/crédito</legend>
+        <div class="modo-toggle">
+          <label id="label-modo-fixo">
+            <input type="radio" name="modo" value="fixo" {{ 'checked' if not p.identificar_por_coluna else '' }}>
+            Fixo (mesma conta para tudo)
+          </label>
+          <label id="label-modo-coluna">
+            <input type="radio" name="modo" value="coluna" {{ 'checked' if p.identificar_por_coluna else '' }}>
+            Por coluna (débito/crédito automático)
+          </label>
+        </div>
+
+        <div id="bloco-fixo" class="subcard">
+          <div class="row2">
+            <div class="field">
+              <label for="linha1">Linha 1 (conta do valor bruto)</label>
+              <input type="text" id="linha1" name="linha1" value="{{ p.get('linha1', '') }}" placeholder="ex: 4920;4918;359">
+            </div>
+            <div class="field">
+              <label for="linha2">Linha 2 (conta da taxa)</label>
+              <input type="text" id="linha2" name="linha2" value="{{ p.get('linha2', '') }}" placeholder="ex: 1228;4920;363">
+            </div>
+          </div>
+        </div>
+
+        <div id="bloco-coluna" class="subcard">
+          <div class="field">
+            <label for="nome_coluna">Nome da coluna que indica o tipo</label>
+            <input type="text" id="nome_coluna" name="nome_coluna"
+                   value="{{ p.identificar_por_coluna.nome_coluna if p.identificar_por_coluna else '' }}"
+                   placeholder="ex: Produto">
+          </div>
+
+          <div class="subcard">
+            <h3>Débito</h3>
+            <div class="field">
+              <label for="debito_valores">Valores que indicam débito <span class="opt">(separados por vírgula)</span></label>
+              <input type="text" id="debito_valores" name="debito_valores"
+                     value="{{ (p.identificar_por_coluna.debito.valores if p.identificar_por_coluna else [])|join(', ') }}"
+                     placeholder="ex: Débito, Débito à vista">
+            </div>
+            <div class="row2">
+              <div class="field">
+                <label for="debito_linha1">Linha 1</label>
+                <input type="text" id="debito_linha1" name="debito_linha1"
+                       value="{{ p.identificar_por_coluna.debito.linha1 if p.identificar_por_coluna else '' }}">
+              </div>
+              <div class="field">
+                <label for="debito_linha2">Linha 2</label>
+                <input type="text" id="debito_linha2" name="debito_linha2"
+                       value="{{ p.identificar_por_coluna.debito.linha2 if p.identificar_por_coluna else '' }}">
+              </div>
+            </div>
+          </div>
+
+          <div class="subcard">
+            <h3>Crédito</h3>
+            <div class="field">
+              <label for="credito_valores">Valores que indicam crédito <span class="opt">(separados por vírgula)</span></label>
+              <input type="text" id="credito_valores" name="credito_valores"
+                     value="{{ (p.identificar_por_coluna.credito.valores if p.identificar_por_coluna else [])|join(', ') }}"
+                     placeholder="ex: Crédito à vista, Parcelado Lojista">
+            </div>
+            <div class="row2">
+              <div class="field">
+                <label for="credito_linha1">Linha 1</label>
+                <input type="text" id="credito_linha1" name="credito_linha1"
+                       value="{{ p.identificar_por_coluna.credito.linha1 if p.identificar_por_coluna else '' }}">
+              </div>
+              <div class="field">
+                <label for="credito_linha2">Linha 2</label>
+                <input type="text" id="credito_linha2" name="credito_linha2"
+                       value="{{ p.identificar_por_coluna.credito.linha2 if p.identificar_por_coluna else '' }}">
+              </div>
+            </div>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Opcionais</legend>
+        <div class="field checkline">
+          <input type="checkbox" id="ignorar_valores_negativos" name="ignorar_valores_negativos"
+                 {{ 'checked' if p.get('ignorar_valores_negativos') else '' }}>
+          <label for="ignorar_valores_negativos" style="margin:0;">Ignorar linhas com valor bruto negativo</label>
+        </div>
+
+        <details style="margin-top:14px;" {{ 'open' if p.get('complemento') or p.get('complemento_debito') or p.get('complemento_credito') else '' }}>
+          <summary>Complementos de histórico (avançado)</summary>
+          <div class="field">
+            <label for="complemento">Complemento geral <span class="opt">(usado se não houver os específicos abaixo)</span></label>
+            <input type="text" id="complemento" name="complemento" value="{{ p.get('complemento', '') }}">
+          </div>
+          <div class="row2">
+            <div class="field">
+              <label for="complemento_debito">Complemento do valor (débito)</label>
+              <input type="text" id="complemento_debito" name="complemento_debito" value="{{ p.get('complemento_debito', '') }}">
+            </div>
+            <div class="field">
+              <label for="complemento_debito_desconto">Complemento da taxa (débito)</label>
+              <input type="text" id="complemento_debito_desconto" name="complemento_debito_desconto" value="{{ p.get('complemento_debito_desconto', '') }}">
+            </div>
+          </div>
+          <div class="row2">
+            <div class="field">
+              <label for="complemento_credito">Complemento do valor (crédito)</label>
+              <input type="text" id="complemento_credito" name="complemento_credito" value="{{ p.get('complemento_credito', '') }}">
+            </div>
+            <div class="field">
+              <label for="complemento_credito_desconto">Complemento da taxa (crédito)</label>
+              <input type="text" id="complemento_credito_desconto" name="complemento_credito_desconto" value="{{ p.get('complemento_credito_desconto', '') }}">
+            </div>
+          </div>
+        </details>
+      </fieldset>
+
+      <div class="actions">
+        <button type="submit">Salvar</button>
+        <a class="btn-cancel" href="{{ url_for('admin_dashboard') }}">Cancelar</a>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    const radios = document.querySelectorAll('input[name="modo"]');
+    const blocoFixo = document.getElementById('bloco-fixo');
+    const blocoColuna = document.getElementById('bloco-coluna');
+    const campoLinha1 = document.getElementById('linha1');
+    const campoLinha2 = document.getElementById('linha2');
+    const camposColuna = [
+      document.getElementById('nome_coluna'),
+      document.getElementById('debito_valores'), document.getElementById('debito_linha1'), document.getElementById('debito_linha2'),
+      document.getElementById('credito_valores'), document.getElementById('credito_linha1'), document.getElementById('credito_linha2'),
+    ];
+
+    function aplicarModo() {
+      const modo = document.querySelector('input[name="modo"]:checked').value;
+      const ehColuna = modo === 'coluna';
+
+      blocoFixo.style.display = ehColuna ? 'none' : 'block';
+      blocoColuna.style.display = ehColuna ? 'block' : 'none';
+
+      campoLinha1.required = !ehColuna;
+      campoLinha2.required = !ehColuna;
+      camposColuna.forEach(el => { el.required = ehColuna; });
+
+      document.getElementById('label-modo-fixo').classList.toggle('active', !ehColuna);
+      document.getElementById('label-modo-coluna').classList.toggle('active', ehColuna);
+    }
+
+    radios.forEach(r => r.addEventListener('change', aplicarModo));
+    aplicarModo();
+  </script>
+</body>
+</html>

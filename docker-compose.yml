@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: robo_cartao
+    restart: unless-stopped
+    ports:
+      - '2929:2929'
+    expose:
+      - '2929'
+    environment:
+      - FLASK_DEBUG=False
+      - TZ=America/Cuiaba
+    # Os volumes garantem que arquivos na fila de processamento 
+    # não se percam caso o container reinicie de surpresa
+    volumes:
+      - uploads_data:/app/uploads
+      - outputs_data:/app/outputs
+
+volumes:
+  uploads_data:
+    name: uploads_data
+  outputs_data:
+    name: outputs_data

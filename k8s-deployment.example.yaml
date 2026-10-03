@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: robo-cartao
+  namespace: apps
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: robo-cartao
+  template:
+    metadata:
+      labels:
+        app: robo-cartao
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      containers:
+        - name: robo-cartao
+          # ATENÇÃO: esta linha é reescrita sozinha pelo GitHub Actions
+          # (.github/workflows/build-push.yml) a cada push na main. Se for
+          # colar este arquivo inteiro em cima do k8s-manifests, confira a
+          # tag atual lá antes — não sobrescreva com o valor daqui.
+          image: ghcr.io/seu-usuario/robo-cartao:7bc120ec2228fae1be1357431a328d0232f4297b
+          ports:
+            - containerPort: 2929
+          env:
+            - name: FLASK_DEBUG
+              value: "False"
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            - name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: robo-cartao-admin-creds
+                  key: ADMIN_PASSWORD
+          # Crie os Secrets robo-cartao-db-creds (DATABASE_URL) e
+          # robo-cartao-admin-creds (ADMIN_PASSWORD) ANTES de aplicar esta
+          # mudança — sem eles o pod fica em CreateContainerConfigError.
+          envFrom:
+            - secretRef:
+                name: robo-cartao-db-creds
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: robo-cartao
+  namespace: apps
+spec:
+  selector:
+    app: robo-cartao
+  ports:
+    - port: 80
+      targetPort: 2929
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: robo-cartao
+  namespace: apps
+spec:
+  rules:
+  - host: cartao.exemplo.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: robo-cartao
+            port:
+              number: 80

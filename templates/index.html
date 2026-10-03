@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    <title>Processador de Cartões</title>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Processador de Cartões</h1>
+            <p>Faça upload dos seus arquivos XLSX de cartões e gere arquivos TXT automaticamente</p>
+        </div>
+
+        <form id="uploadForm">
+            <label class="drop-area" id="uploadArea">
+                <input type="file" id="files" name="files" multiple accept=".xlsx" hidden>
+                <div class="upload-icon">📁</div>
+                <div class="upload-text">Clique aqui ou arraste seus arquivos XLSX</div>
+                <div class="upload-subtext">1 - Suporte apenas para Detalhamento das Vendas</div>
+                <div class="upload-subtext">2 - Suporte a envio de varios arquivos</div>
+            </label>
+
+            <div class="file-list" id="fileList"></div>
+
+            <div class="buttons">
+                <button type="submit" class="btn processar" id="processBtn">Processar Arquivos</button>
+                <button type="button" class="btn baixar-todos" id="baixarTodos" style="display: none;">📥 Baixar
+                    Todos</button>
+                <button type="button" class="btn limpar" id="limpar">Limpar Arquivos</button>
+            </div>
+        </form>
+
+        <div id="status"></div>
+    </div>
+
+    <script src="../static/script.js"></script>
+</body>
+
+</html>

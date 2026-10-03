@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+venv/
+env/
+.env
+
+# Application data
+uploads/*
+!uploads/.gitkeep
+outputs/*
+!outputs/.gitkeep
+backup/
+sessions.db
+sessions.db-wal
+sessions.db-shm
+parametros_config.json
+
+# OS files
+.DS_Store
+Thumbs.db
